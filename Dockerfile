@@ -19,7 +19,10 @@ RUN pip install --no-cache-dir \
     python-docx \
     pymupdf \
     pandas \
-    easyocr
+    easyocr \
+    fastapi \
+    uvicorn \
+    python-multipart
 
 # 1) Модели Docling (layout, tableformer) из HuggingFace
 RUN python -c "from docling.document_converter import DocumentConverter; DocumentConverter()"
@@ -30,7 +33,19 @@ RUN python -c "from docling.document_converter import DocumentConverter; Documen
 RUN python -c "import easyocr; easyocr.Reader(['en', 'vi'], gpu=False)"
 
 RUN mkdir -p /data
+
+# REST API (FastAPI + OpenAPI). api.py импортирует ocr.py из /app.
+COPY api.py /app/api.py
+
+ENV PYTHONPATH=/app \
+    OCR_API_LANGS="en vi" \
+    OCR_API_MAX_UPLOAD_MB=100 \
+    OCR_API_MAX_CONCURRENCY=1
+
+EXPOSE 8000
+
 WORKDIR /data
 
-ENTRYPOINT ["python", "/app/ocr.py", "--no-open"]
-CMD ["--help"]
+# Сервер по умолчанию; для CLI-режима оригинального скрипта запускайте так:
+#   docker run --rm -v "$PWD:/data" image python /app/ocr.py --no-open -i file.pdf
+CMD ["python", "-m", "uvicorn", "api:app", "--host", "0.0.0.0", "--port", "8000"]

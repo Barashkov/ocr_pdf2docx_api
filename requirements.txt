@@ -1,0 +1,4 @@
+# Зависимости REST API (полный список — в Dockerfile)
+fastapi
+uvicorn[standard]
+python-multipart
